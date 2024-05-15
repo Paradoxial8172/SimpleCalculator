@@ -1,4 +1,6 @@
 from tkinter import *
+from tkinter import messagebox
+import pyperclip
 
 FOREGROUND = "#ffffff"
 BASE = "#828282"
@@ -28,79 +30,72 @@ class Application(Tk):
         def on_release(event):
             event.widget.config(bg=DARK)
 
-        calculation_label = Label(self, fg=FOREGROUND, bg="#474747", font=LABEL_FONT, text="")
-        calculation_label.pack()
-        
+        calculation_entry = Entry(self, fg=FOREGROUND, bg="#474747", width=10, font=LABEL_FONT, border=0, justify=RIGHT)
+        calculation_entry.pack()
+
+        copy_text = Label(self, text="Your calculation seems rather long... Copy to clipboard?", wraplength=200, fg="#ffffff", bg="#474747")
+
         num_pad = Frame(self, bg="#474747")
         num_pad.pack(padx=8, pady=8)
 
-        def append_to_calculation(event, value): #max characters is 13
+        def append_to_calculation(event, value):
             event.widget.config(bg=DARKER)
-            if str(calculation_label.cget("text")) == "Syntax Error" or str(calculation_label.cget("text")) == "Overflow Error" or str(calculation_label.cget("text")) == "Zero Divison Error":
-                clear(event=None)
-            if len(str(calculation_label.cget('text')).strip(" ")) > 13:
-                calculate(event=None)
-            else:
-                calculation_label.config(text=f"{str(calculation_label.cget('text')) + str(value)}")    
+            calculation_entry.config(font=LABEL_FONT, width=10, justify=RIGHT)
+            current_string = calculation_entry.get()
+            new_string = str(current_string) + str(value)
+            calculation_entry.delete(0, END)
+            calculation_entry.insert(0, new_string)
             return "break"
-        
+
         def calculate(event):
             try:
-                if event is None:
-                    calculation_string = str(calculation_label.cget("text")).replace("x", "*").replace("÷", "/").replace("^", "**")
-
-                    calculation = eval(calculation_string)
-
-                    if len(str(calculation)) > 13: #this sometimes causes the program to crash
-                        calculation_label.config(text="Overflow Error")
-                    else:
-                        calculation_label.config(text=calculation)
-
-                    return "break"
-                else:
-                    event.widget.config(bg=DARKER)
-                    calculation_string = str(calculation_label.cget("text")).replace("x", "*").replace("÷", "/").replace("^", "**")
-
-                    calculation = eval(calculation_string)
-
-                    if len(str(calculation)) > 13: 
-                        calculation_label.config(text="Overflow Error")
-                    else:
-                        calculation_label.config(text=calculation)
-                    button_equals.config(bg=BASE)
-                    return "break"
-                
-            except SyntaxError:
-                calculation_label.config(text="Syntax Error")
-            except OverflowError:
-                calculation_label.config(text="Overflow Error")
-            except ValueError:
-                calculation_label.config(text="Overflow Error")
+                event.widget.config(bg=DARKER)
+                calculation_string = str(calculation_entry.get()).replace("^","**").replace("x","*").replace("÷","/")
+                calculation = eval(calculation_string)
+                calculation_entry.delete(0, END)
+                calculation_entry.insert(0, calculation)
+                if len(str(calculation)) > 10:
+                    button_copy.pack()
+                    copy_text.pack()
+                elif len(str(calculation)) < 10:
+                    button_copy.pack_forget()
+                    copy_text.pack_forget()
             except ZeroDivisionError:
-                calculation_label.config(text="Zero Divison Error", font=("Arial", 20, "bold"))
+                calculation_entry.delete(0, END)
+                calculation_entry.config(font=("Arial", 18, "bold"), width=19, justify=CENTER)
+                calculation_entry.insert(0, "Zero Division Error")
+            except SyntaxError:
+                calculation_entry.delete(0, END)
+                calculation_entry.config(font=("Arial", 18, "bold"), width=12, justify=CENTER)
+                calculation_entry.insert(0, "Syntax Error")
+            except OverflowError:
+                calculation_entry.delete(0, END)
+                calculation_entry.config(font=("Arial", 18, "bold"), width=14, justify=CENTER)
+                calculation_entry.insert(0, "OverFlow Error")
 
             return "break"
         
         def clear(event):
-            if event is None:
-                calculation_label.config(text="")
-                return "break"
-            else:
-                event.widget.config(bg=DARKER)
-
-                calculation_label.config(text="")
-
-                return "break"
+            event.widget.config(bg=DARKER)
+            calculation_entry.config(font=LABEL_FONT, width=10, justify=RIGHT)
+            calculation_entry.delete(0, END)
+            button_copy.pack_forget()
+            copy_text.pack_forget()
+            return "break"
 
         def switch_sign(event):      
             event.widget.config(bg=DARKER)
-            if len(str(calculation_label.cget('text')).strip(" ")) > 13:
-                calculation_label.config(text=f"-({str(calculation_label.cget('text')).strip('')})")
-                calculate(event=None)
-            else:
-                calculation_label.config(text=f"(-{str(calculation_label.cget('text')).strip('')})")
+            calculate(event)
+            current_string = calculation_entry.get()
+            calculation_entry.delete(0, END)
+            calculation_entry.insert(0, f"-({current_string})")
             return "break"
-
+    
+        def copy(event):
+            event.widget.config(bg=DARKER)
+            string = calculation_entry.get()
+            pyperclip.copy(string)
+            return "break"
 
         button_one = Button(num_pad, text="1", bg=BASE, fg=FOREGROUND, font=BUTTON_FONT, relief=FLAT, height=2, width=4)
         button_two = Button(num_pad, text="2", bg=BASE, fg=FOREGROUND, font=BUTTON_FONT, relief=FLAT, height=2, width=4)
@@ -124,6 +119,8 @@ class Application(Tk):
         button_equals = Button(num_pad, text="=", bg=BASE, fg=FOREGROUND, font=BUTTON_FONT, relief=FLAT, height=2, width=4)
         button_clear = Button(num_pad, text="Clr", bg=BASE, fg=FOREGROUND, font=BUTTON_FONT, relief=FLAT, height=2, width=4)
         button_pos_neg = Button(num_pad, text="±", bg=BASE, fg=FOREGROUND, font=BUTTON_FONT, relief=FLAT, height=2, width=4)
+
+        button_copy = Button(self, text="Copy", font=("Arial", 8, "bold"), bg=BASE, fg=FOREGROUND, relief=FLAT)
 
         button_pos_neg.grid(row=0, column=0, padx=2, pady=2)
         button_square.grid(row=0, column=1, padx=2, pady=2)
@@ -168,10 +165,12 @@ class Application(Tk):
         button_clear.bind("<Button-1>", lambda e: clear(event=e))
         button_pos_neg.bind("<Button-1>", lambda e: switch_sign(event=e))
 
-        buttons_list = [button_one, button_two, button_three, button_four, button_five, button_six, button_seven, button_eight, button_nine, button_zero, button_add, button_subtract, button_multiply, button_divide, button_equals, button_clear, button_decimal, button_power, button_square, button_pos_neg]
+        button_copy.bind("<Button-1>", lambda e: copy(event=e))
+
+        buttons_list = [button_one, button_two, button_three, button_four, button_five, button_six, button_seven, button_eight, button_nine, button_zero, button_add, button_subtract, button_multiply, button_divide, button_equals, button_clear, button_decimal, button_power, button_square, button_pos_neg, button_copy]
         for button in buttons_list:
-            button.bind("<Enter>", on_enter)
-            button.bind("<Leave>", on_leave)
+            button.bind("<Enter>", lambda e: on_enter(event=e))
+            button.bind("<Leave>", lambda e: on_leave(event=e))
             button.bind("<ButtonRelease-1>", on_release)
 
 if __name__ == '__main__':
